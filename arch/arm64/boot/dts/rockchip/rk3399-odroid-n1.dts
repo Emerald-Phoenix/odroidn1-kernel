@@ -849,6 +849,7 @@
 		#size-cells = <1>;
 		compatible = "winbond,w25q128", "jedec,spi-nor";
 		spi-max-frequency = <104000000>;
+		spi-cs-high;
 		reg = <0>;
 	};
 };
