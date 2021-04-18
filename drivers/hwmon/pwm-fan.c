@@ -18,6 +18,8 @@
 #include <linux/sysfs.h>
 #include <linux/thermal.h>
 #include <linux/timer.h>
+#include <linux/types.h>
+#include <linux/hwmon-sysfs.h>
 
 #define MAX_PWM 255
 
@@ -44,6 +46,7 @@ struct pwm_fan_ctx {
 	unsigned int pwm_fan_max_state;
 	unsigned int *pwm_fan_cooling_levels;
 	struct thermal_cooling_device *cdev;
+	bool automatic;
 
 	struct hwmon_chip_info info;
 	struct hwmon_channel_info fan_channel;
@@ -161,6 +164,47 @@ static int pwm_fan_read(struct device *dev, enum hwmon_sensor_types type,
 	}
 }
 
+static ssize_t show_automatic(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct pwm_fan_ctx *ctx = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d\n", ctx->automatic);
+}
+
+static ssize_t set_automatic(struct device *dev, struct device_attribute *attr,
+			     const char *buf, size_t count)
+{
+	struct pwm_fan_ctx *ctx = dev_get_drvdata(dev);
+	bool automatic;
+	int ret;
+
+	if (kstrtobool(buf, &automatic))
+		return -EINVAL;
+
+	mutex_lock(&ctx->lock);
+	ctx->automatic = automatic;
+	mutex_unlock(&ctx->lock);
+
+	if (automatic) {
+		ret = __set_pwm(ctx, ctx->pwm_fan_cooling_levels[ctx->pwm_fan_state]);
+		if (ret)
+			return ret;
+	}
+
+	return count;
+}
+
+static SENSOR_DEVICE_ATTR(automatic, S_IRUGO | S_IWUSR, show_automatic,
+			  set_automatic, 0);
+			  
+static struct attribute *pwm_fan_attrs[] = {
+	&sensor_dev_attr_automatic.dev_attr.attr,
+	NULL,
+};
+
+ATTRIBUTE_GROUPS(pwm_fan);
+
 static umode_t pwm_fan_is_visible(const void *data,
 				  enum hwmon_sensor_types type,
 				  u32 attr, int channel)
@@ -222,12 +266,15 @@ pwm_fan_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
 	if (state == ctx->pwm_fan_state)
 		return 0;
 
-	ret = __set_pwm(ctx, ctx->pwm_fan_cooling_levels[state]);
-	if (ret) {
-		dev_err(&cdev->device, "Cannot set pwm!\n");
-		return ret;
+	if (ctx->automatic) {
+		ret = __set_pwm(ctx, ctx->pwm_fan_cooling_levels[state]);
+		if (ret) {
+			dev_err(&cdev->device, "Cannot set pwm!\n");
+			return ret;
+		}
 	}
 
+	// Save state even if in manual mode in order to resume
 	ctx->pwm_fan_state = state;
 
 	return ret;
@@ -315,6 +362,8 @@ static int pwm_fan_probe(struct platform_device *pdev)
 	ctx->pwm = devm_of_pwm_get(dev, dev->of_node, NULL);
 	if (IS_ERR(ctx->pwm))
 		return dev_err_probe(dev, PTR_ERR(ctx->pwm), "Could not get PWM\n");
+
+	ctx->automatic = true;
 
 	platform_set_drvdata(pdev, ctx);
 
@@ -434,7 +483,7 @@ static int pwm_fan_probe(struct platform_device *pdev)
 	ctx->info.info = channels;
 
 	hwmon = devm_hwmon_device_register_with_info(dev, "pwmfan",
-						     ctx, &ctx->info, NULL);
+						     ctx, &ctx->info, pwm_fan_groups);
 	if (IS_ERR(hwmon)) {
 		dev_err(dev, "Failed to register hwmon device\n");
 		return PTR_ERR(hwmon);
