@@ -1390,6 +1390,15 @@ static int cpufreq_online(unsigned int cpu)
 	cpumask_and(policy->cpus, policy->cpus, cpu_online_mask);
 
 	if (new_policy) {
+	
+	    if (cpumask_test_cpu(0, policy->cpus)) {
+		    	policy->min = 408000;
+		    	policy->max = 1512000;
+		    } else {
+		    	policy->min = 408000;
+		    	policy->max = 1992000;
+		    }
+	
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;
 			add_cpu_dev_symlink(policy, j, get_cpu_device(j));
