@@ -485,7 +485,7 @@
 				regulator-name = "vdd_cpu_l";
 				regulator-always-on;
 				regulator-boot-on;
-				regulator-min-microvolt = <750000>;
+				regulator-min-microvolt = <712500>;
 				regulator-max-microvolt = <1350000>;
 				regulator-ramp-delay = <6001>;
 
