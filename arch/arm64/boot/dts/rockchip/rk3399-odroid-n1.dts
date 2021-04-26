@@ -836,8 +836,7 @@
 	keep-power-in-suspend;
 	cap-mmc-highspeed;
 	mmc-hs400-1_8v;
-	mmc-hs400-enhanced-strobe;
-	max-frequency = <150000000>;
+	max-frequency = <200000000>;
 	status = "okay";
 };
 
