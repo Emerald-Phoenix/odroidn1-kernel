@@ -1534,6 +1534,20 @@ static int cpufreq_policy_online(struct cpufreq_policy *policy,
 			goto out_offline_policy;
 
 		if (new_policy) {
+			/*
+			 * ODROID-N1: enforce the stock OC-capped frequency
+			 * limits (A53: 408-1512 MHz, A72: 408-1992 MHz)
+			 * before cpufreq_policy_init_qos() seeds the QoS
+			 * constraints from policy->min/max.
+			 */
+			if (cpumask_test_cpu(0, policy->cpus)) {
+				policy->min = 408000;
+				policy->max = 1512000;
+			} else {
+				policy->min = 408000;
+				policy->max = 1992000;
+			}
+
 			ret = cpufreq_policy_init_qos(policy);
 			if (ret < 0)
 				goto out_offline_policy;
@@ -1557,15 +1571,6 @@ static int cpufreq_policy_online(struct cpufreq_policy *policy,
 	cpumask_and(policy->cpus, policy->cpus, cpu_online_mask);
 
 	if (new_policy) {
-	
-	    if (cpumask_test_cpu(0, policy->cpus)) {
-		    	policy->min = 408000;
-		    	policy->max = 1512000;
-		    } else {
-		    	policy->min = 408000;
-		    	policy->max = 1992000;
-		    }
-	
 		for_each_cpu(j, policy->related_cpus) {
 			per_cpu(cpufreq_cpu_data, j) = policy;
 			add_cpu_dev_symlink(policy, j, get_cpu_device(j));
