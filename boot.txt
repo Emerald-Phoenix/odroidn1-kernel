@@ -16,8 +16,8 @@ else
   setenv partition ${distro_bootpart}
 fi
 
-load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-6.6.0+
+load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-6.8.0+
 load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}${fdtpath}
-load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-6.6.0+
+load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-6.8.0+
 echo "Booting Debian from ${devtype} ${devnum}:${partition}..."
 booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r} 
