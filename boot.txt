@@ -1,0 +1,23 @@
+# Default serial console
+setenv console "ttyS2,115200n8"
+
+setenv bootargs "root=UUID=52662db4-d4fa-434f-b6ff-75eab420603b net.ifnames=0 fsck.mode=skip fsck.repair=yes rootwait ro earlycon earlyprintk console=${console} cma=800M clk_ignore_unused"
+
+if test -z "${ethaddr}"; then
+   setenv ethaddr "00:1e:aa:bb:cc:dd"
+fi
+
+setenv fdt_addr_r "0x20000000"
+setenv fdtpath rk3399-odroid-n1.dtb
+
+if test -z "${distro_bootpart}"; then
+  setenv partition ${bootpart}
+else
+  setenv partition ${distro_bootpart}
+fi
+
+load ${devtype} ${devnum}:${partition} ${kernel_addr_r} ${prefix}vmlinuz-6.6.0+
+load ${devtype} ${devnum}:${partition} ${fdt_addr_r} ${prefix}${fdtpath}
+load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} ${prefix}initrd.img-6.6.0+
+echo "Booting Debian from ${devtype} ${devnum}:${partition}..."
+booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r} 
