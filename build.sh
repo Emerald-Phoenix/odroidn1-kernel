@@ -16,6 +16,21 @@ export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 JOBS="${JOBS:-$(nproc)}"
 
+# Optimise the build for the ODROID-N1 (RK3399: 2x Cortex-A72 + 4x Cortex-A53).
+#   -O3: aggressive code generation. The kernel defaults to -O2; the top
+#         Makefile appends KCFLAGS to KBUILD_CFLAGS last, and GCC takes the
+#         last -O, so this wins.
+#   -mcpu=cortex-a72.cortex-a53: GCC's combined big.LITTLE option for this
+#         exact core pair (it is a valid -mcpu value; the order matters -
+#         big core first). On AArch64, -mcpu selects both the instruction
+#         set and the tuning in one flag: the ISA is the common subset of
+#         the two cores (armv8-a + CRC32, since the A53 lacks the A72's
+#         optional crypto extensions - verified: it emits ".arch
+#         armv8-a+crc"), so every core executes it natively, and the
+#         tuning is the one of the A72 cluster.
+# KCFLAGS only affects kernel objects (host tools use KBUILD_HOSTCFLAGS).
+export KCFLAGS="-O3 -mcpu=cortex-a72.cortex-a53"
+
 if ! command -v "${CROSS_COMPILE}gcc" >/dev/null 2>&1; then
     echo "error: ${CROSS_COMPILE}gcc not found" >&2
     echo "install it with: sudo apt-get install gcc-aarch64-linux-gnu" >&2
