@@ -10,7 +10,6 @@
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/input/input.h>
 #include "rk3399.dtsi"
-#include "rk3399-opp.dtsi"
 
 / {
 	model = "Hardkernel ODROID-N1";
